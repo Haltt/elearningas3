@@ -2,7 +2,7 @@
  * @package Curso
  * @copyright Wanderson Teixeira (wandersonteixeira@live.com)
  * @created 29/10/2014
- * @version 1.3.1, 23/04/2015
+ * @version 1.3.2, 06/10/2015
  * @internal Classe principal, onde está tratado a navegação e funcionalidades padrões.
  * @internal 1.0.1, 30/10/2014 - Ajuste que trava o botão Avançar funcionando.
  * @internal 1.0.2, 31/10/2014 - Implementado o contador de forma dinâmica, fazendo sua montagem automaticamente com base na quantidade de telas do curso.
@@ -10,6 +10,7 @@
  * @internal 1.2.0, 31/03/2015 - Scorm gravando as telas e retornando onde parou, animação liberando a tela após sua conclusão e com delay caso necessário.
  * @internal 1.3.0, 23/04/2015 - Menu funcionando quando a tela for maior do que a tela atual, falta resolver para ficar liberado quando a opção já tiver sido liberada.
  * @internal 1.3.1, 24/04/2015 - Menu funcionando quando a tela for maior do que a tela atual e retornando ao curso pela plataforma.
+ * @internal 1.3.2, 06/10/2015 - Correção Bug ajuda.
  **/
 
 package {
@@ -47,11 +48,13 @@ package {
 		private var tempoHint: Timer; //Define o tempo para liberar o hint
 		private var tempoTelaVoltar: Timer; //Define um delay para o botão voltar
 
+		private var ConfigAjuda: Boolean; //Armazena o Status do Ajuda
+
 		public var telaAtual: Number; //Armazena a Tela Atual
 		public var frameAtual: Number; //Armazena o Frame Atual dentro da Tela Atual
 
 		public var ConfigMenu: Array; //Armazena a tela inicial de cada item do menu
-		public var ConfigAjuda: Boolean;
+		
 
 		//FUNÇÃO PRINCIPAL
 		public function Curso() {
@@ -69,25 +72,19 @@ package {
 				telaAtual = telaAtualScorm;
 			} else {
 				telaAtual = 1;
-				trace(ConfigAjuda);
-				if(ConfigAjuda) {
-					myRoot.MenuAjuda.gotoAndStop(2);
-				} else {
-					myRoot.MenuAjuda.gotoAndStop(1);
-				}
 				frameAtual = myRoot["Tela" + telaAtual].currentFrame; //Frame Atual dentro da Tela Atual
 			}
 			myRoot.gotoAndStop(telaAtual); //Exibe a Tela (Frame) Atual
 			totalTelas = myRoot.totalFrames; //Informa a quantidade de telas do curso.
 
-			//Contador
-			//Mostra a tela atual na tela.
+			//Contador			
+			//Mostra o total de telas na tela.
 			if(totalTelas < 10) {
 				myRoot.txtTotalTela.text = "0" + (totalTelas - 2);
 			} else {
 				myRoot.txtTotalTela.text = totalTelas - 2;
 			}
-			//Mostra o total de telas na tela.
+			//Mostra a tela atual na tela.
 			if(totalTelas < 10) {
 				myRoot.txtTelaAtual.text = "0" + telaAtual;
 			} else {
@@ -97,6 +94,13 @@ package {
 			//Estado dos Botões (Avançar e Voltar)
 			myRoot.btnAvancar.gotoAndStop(3); //Inicia o botão avançar no estado de travado.
 			myRoot.btnVoltar.gotoAndStop(3); //Inicia o botão voltar no estado de travado. 			
+		}
+
+		public function MyConfig(MyConfigAjuda: Boolean): void {
+			ConfigAjuda = MyConfigAjuda;
+			if(telaAtual == 1 && ConfigAjuda) {
+				myRoot.MenuAjuda.gotoAndStop(2);
+			}
 		}
 
 		//## NAVEGAÇÃO
@@ -123,9 +127,13 @@ package {
 		
 		//### LIBERA A TELA DEPOIS DO TEMPO DETERMINADO
 		public function LiberaNavegacao(myTime: Number): void {
-			tempoTela = new Timer(myTime * 1000);
-			tempoTela.start();
-			tempoTela.addEventListener(TimerEvent.TIMER, Navegacao);
+			if(Number(telaAtual) >= Number(totalTelas) - 2) {
+				myRoot.btnAvancar.gotoAndStop(4);
+			} else {
+				tempoTela = new Timer(myTime * 1000);
+				tempoTela.start();
+				tempoTela.addEventListener(TimerEvent.TIMER, Navegacao);
+			}
 
 			tempoTelaVoltar = new Timer(1500);
 			tempoTelaVoltar.start();
@@ -191,13 +199,22 @@ package {
 			travaTela();
 			telaAtual--;
 			myRoot.prevFrame();
-			myRoot.txtTelaAtual.text = telaAtual;
+			if(totalTelas < 10) {
+				myRoot.txtTelaAtual.text = "0" + telaAtual;
+			} else {
+				myRoot.txtTelaAtual.text = telaAtual;
+			}
 
 			//LIMPA BOTÕES
 			myRoot.btnAvancar.removeEventListener(MouseEvent.MOUSE_DOWN, NextTela);
 			myRoot.btnVoltar.removeEventListener(MouseEvent.MOUSE_DOWN, PrevTela);
 
 			LimpaMenus(); //LIMPA MENUS
+			
+			//AJUDA
+			if(telaAtual == 1 && ConfigAjuda) {
+				myRoot.MenuAjuda.gotoAndStop(2);
+			}
 		}
 
 		//#### ESTADOS DO BOTÃO AVANÇAR
